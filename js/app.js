@@ -10,7 +10,7 @@
     { key: 'variation', label: 'Hand variation %', min: 0, max: 40, step: 1, hint: 'noise added to coefficients (damped per harmonic)' },
     { key: 'morph', label: 'Morph A → B %', min: 0, max: 100, step: 1, hint: 'interpolate motif coefficients' }
   ];
-  const state = { seed: 7, aspect: 1.3333, medallion: true };
+  const state = { seed: 7, aspect: 1.3333, medallion: false };
   let last = null, rafId = 0, view = null, demo = null;
 
   // Returns the default knob values for a style, including its motif pair and zero morph.
