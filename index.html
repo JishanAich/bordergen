@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fourier Border Studio</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Fourier Border Studio</h1>
+    <p>Pattachitra &amp; folk-art borders from a handful of Fourier coefficients &mdash; not pixels, not SVG diffusion.</p>
+  </div>
+  <button id="focusBtn" class="ghost" title="Hide the panels and show the border full size (F)">Focus (F)</button>
+  <div class="pill" id="pill" title="Real numbers needed to describe this exact border (motif coefficients + band series + rosette rings + layout)">
+    <b id="pillNum">0</b><span>numbers describe this border</span>
+  </div>
+</header>
+
+<main>
+  <aside id="controls" class="panel">
+    <h2>Style</h2>
+    <select id="style"></select>
+    <p class="blurb" id="blurb"></p>
+
+    <h2>Fourier knobs</h2>
+    <div id="sliders"></div>
+
+    <h2>Motifs</h2>
+    <div class="row"><label for="motifA">Motif A</label><select id="motifA"></select></div>
+    <div class="row"><label for="motifB">Morph target B</label><select id="motifB"></select></div>
+    <div class="row"><label for="aspect">Frame shape</label>
+      <select id="aspect"><option value="1.3333">Landscape 4:3</option><option value="1">Square 1:1</option><option value="0.75">Portrait 3:4</option></select></div>
+    <label class="check"><input type="checkbox" id="medallion" checked> Centre medallion</label>
+
+    <h2>Seed</h2>
+    <div class="row seed"><input type="number" id="seed" min="1" max="99999" step="1"><button id="dice" title="New random seed">Randomise</button></div>
+
+    <h2>Learn from an image</h2>
+    <label class="file"><input type="file" id="upload" accept="image/*"><span>Upload a motif silhouette&hellip;</span></label>
+    <p class="hint" id="uploadMsg">Dark shape on a light background (or a transparent PNG). It is traced, run through the FFT, and used as a motif.</p>
+
+    <h2>Export</h2>
+    <div class="btns">
+      <button class="primary" id="exSvg">Export SVG</button>
+      <button id="exPng">PNG</button>
+      <button id="exJson">Params JSON</button>
+    </div>
+    <button class="demo" id="autoDemo">&#9654; Auto demo</button>
+  </aside>
+
+  <section id="stage">
+    <div id="frame" aria-label="Generated border"></div>
+    <div id="narration"></div>
+    <div id="caption"></div>
+  </section>
+
+  <aside id="lab" class="panel">
+    <h2>Watch the series draw the shape</h2>
+    <canvas id="epi"></canvas>
+    <div class="row lab-row">
+      <select id="labShape"></select>
+      <button id="epiPlay">Pause</button>
+      <button id="epiRestart">Restart</button>
+    </div>
+    <p class="readout" id="epiReadout"></p>
+
+    <h2>Spectrum |c<sub>k</sub>|</h2>
+    <canvas id="spec"></canvas>
+    <p class="hint">Red bars are the harmonics kept by the slider. Cutting the grey ones smooths the shape; adding them sharpens tips.</p>
+
+    <h2>The maths</h2>
+    <div class="math">
+      <div><b>Motif</b><code>z(t) = &Sigma; c<sub>k</sub> e<sup>ikt</sup></code></div>
+      <div><b>Rosette</b><code>r(&theta;) = &rho; + &Sigma; a<sub>n</sub> cos(n&middot;m&middot;&theta;)</code></div>
+      <div><b>Band</b><code>v(u) = &Sigma; b<sub>n</sub> sin(2&pi;n&middot;u/p)</code></div>
+      <div><b>Symmetry</b><code>m-fold &hArr; only k &equiv; 1 (mod m)</code></div>
+    </div>
+  </aside>
+</main>
+
+<script src="js/fourier.js"></script>
+<script src="js/motifs.js"></script>
+<script src="js/styles.js"></script>
+<script src="js/layers.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/trace.js"></script>
+<script src="js/epicycle.js"></script>
+<script src="js/exporters.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

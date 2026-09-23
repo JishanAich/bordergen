@@ -1,0 +1,1507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fourier Border Studio</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,500&family=Work+Sans:wght@400;500;600;700&display=swap');
+:root {
+  --paper: #f6ecd6; --panel: #fffaf0; --ink: #1d1512; --muted: #7a6b58; --line: #e3d5b6;
+  --vermilion: #c4301d; --indigo: #1f2f5e; --ochre: #e8a71c;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--paper); color: var(--ink); font: 14px/1.45 var(--font-ui);
+  display: flex; flex-direction: column; min-height: 100vh;
+}
+header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px;
+  background: var(--indigo); color: #fbf4e2; border-bottom: 4px solid var(--ochre);
+}
+.brand h1 { margin: 0; font: 700 21px/1.2 var(--font-display); letter-spacing: .2px; }
+.brand p { margin: 2px 0 0; font-size: 12.5px; opacity: .85; }
+.pill { display: flex; align-items: baseline; gap: 8px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
+.pill b { font: 700 22px/1 var(--font-display); color: var(--ochre); }
+.pill span { font-size: 12px; opacity: .9; }
+
+body { height: 100vh; overflow: hidden; }
+button.ghost { margin-right: 12px; background: transparent; color: #fbf4e2; border-color: rgba(255,255,255,.35); margin-left: auto; }
+button.ghost:hover { border-color: var(--ochre); }
+.focus main { grid-template-columns: minmax(0, 1fr); }
+.focus #controls, .focus #lab { display: none; }
+main { flex: 1; display: grid; grid-template-columns: 300px minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr); gap: 14px; padding: 14px; min-height: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-y: auto; min-height: 0; }
+.panel h2 { margin: 14px 0 6px; font: 600 11px/1 var(--font-ui); text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+.panel h2:first-child { margin-top: 2px; }
+.blurb, .hint, .readout { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+.readout { color: var(--ink); }
+
+select, input[type=number], button {
+  font: inherit; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
+}
+select { width: 100%; }
+button { cursor: pointer; background: #fff7e3; }
+button:hover { border-color: var(--vermilion); }
+button.primary { background: var(--vermilion); color: #fff; border-color: var(--vermilion); font-weight: 600; }
+button.primary:hover { filter: brightness(1.08); }
+button.demo { width: 100%; margin-top: 10px; background: var(--indigo); color: #fff; border-color: var(--indigo); font-weight: 600; padding: 8px; }
+button.demo.on { background: var(--vermilion); border-color: var(--vermilion); }
+.btns { display: flex; gap: 6px; } .btns button { flex: 1; }
+.row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+.row label { flex: 0 0 96px; font-size: 12.5px; color: var(--muted); }
+.row.seed input { flex: 1; min-width: 0; } .row.seed button { flex: 0 0 auto; }
+.check { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; }
+.lab-row select { flex: 1; min-width: 0; }
+
+.slider { margin: 8px 0 2px; }
+.slider .top { display: flex; justify-content: space-between; font-size: 12.5px; }
+.slider .top b { font-variant-numeric: tabular-nums; color: var(--vermilion); }
+.slider input[type=range] { width: 100%; accent-color: var(--vermilion); margin: 2px 0 0; }
+.slider .sub { font-size: 11px; color: var(--muted); margin-top: -2px; }
+
+.file { display: block; cursor: pointer; }
+.file input { display: none; }
+.file span { display: block; text-align: center; padding: 8px; border: 1.5px dashed var(--muted); border-radius: 8px; color: var(--muted); }
+.file:hover span { border-color: var(--vermilion); color: var(--vermilion); }
+
+#stage { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 0; }
+#frame { position: relative; width: 100%; flex: 1; min-height: 0; }
+#frame svg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 6px 24px rgba(29,21,18,.28); border-radius: 2px; }
+#narration { min-height: 26px; margin-top: 8px; padding: 3px 14px; font: italic 500 17px/1.3 var(--font-display); color: var(--vermilion); text-align: center; }
+#narration:empty { visibility: hidden; }
+#caption { margin-top: 2px; font-size: 12.5px; color: var(--muted); text-align: center; }
+#caption b { color: var(--ink); }
+
+#epi { width: 100%; height: 300px; display: block; background: #fffdf6; border: 1px solid var(--line); border-radius: 8px; }
+#spec { width: 100%; height: 96px; display: block; background: #fffdf6; border: 1px solid var(--line); border-radius: 8px; }
+.math { display: grid; gap: 6px; }
+.math div { display: flex; flex-direction: column; font-size: 12px; }
+.math b { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+.math code { font: 13px/1.4 "Fraunces", "Cambria Math", Georgia, serif; background: #fff7e3; border: 1px solid var(--line); border-radius: 5px; padding: 3px 7px; }
+
+@media (max-width: 1100px) {
+  body { height: auto; overflow: auto; }
+  main { grid-template-columns: 280px minmax(0, 1fr); grid-template-rows: none; }
+  #stage { min-height: 70vh; }
+  #lab { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  main { grid-template-columns: 1fr; }
+  header { flex-direction: column; align-items: flex-start; }
+}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Fourier Border Studio</h1>
+    <p>Pattachitra &amp; folk-art borders from a handful of Fourier coefficients &mdash; not pixels, not SVG diffusion.</p>
+  </div>
+  <button id="focusBtn" class="ghost" title="Hide the panels and show the border full size (F)">Focus (F)</button>
+  <div class="pill" id="pill" title="Real numbers needed to describe this exact border (motif coefficients + band series + rosette rings + layout)">
+    <b id="pillNum">0</b><span>numbers describe this border</span>
+  </div>
+</header>
+
+<main>
+  <aside id="controls" class="panel">
+    <h2>Style</h2>
+    <select id="style"></select>
+    <p class="blurb" id="blurb"></p>
+
+    <h2>Fourier knobs</h2>
+    <div id="sliders"></div>
+
+    <h2>Motifs</h2>
+    <div class="row"><label for="motifA">Motif A</label><select id="motifA"></select></div>
+    <div class="row"><label for="motifB">Morph target B</label><select id="motifB"></select></div>
+    <div class="row"><label for="aspect">Frame shape</label>
+      <select id="aspect"><option value="1.3333">Landscape 4:3</option><option value="1">Square 1:1</option><option value="0.75">Portrait 3:4</option></select></div>
+    <label class="check"><input type="checkbox" id="medallion" checked> Centre medallion</label>
+
+    <h2>Seed</h2>
+    <div class="row seed"><input type="number" id="seed" min="1" max="99999" step="1"><button id="dice" title="New random seed">Randomise</button></div>
+
+    <h2>Learn from an image</h2>
+    <label class="file"><input type="file" id="upload" accept="image/*"><span>Upload a motif silhouette&hellip;</span></label>
+    <p class="hint" id="uploadMsg">Dark shape on a light background (or a transparent PNG). It is traced, run through the FFT, and used as a motif.</p>
+
+    <h2>Export</h2>
+    <div class="btns">
+      <button class="primary" id="exSvg">Export SVG</button>
+      <button id="exPng">PNG</button>
+      <button id="exJson">Params JSON</button>
+    </div>
+    <button class="demo" id="autoDemo">&#9654; Auto demo</button>
+  </aside>
+
+  <section id="stage">
+    <div id="frame" aria-label="Generated border"></div>
+    <div id="narration"></div>
+    <div id="caption"></div>
+  </section>
+
+  <aside id="lab" class="panel">
+    <h2>Watch the series draw the shape</h2>
+    <canvas id="epi"></canvas>
+    <div class="row lab-row">
+      <select id="labShape"></select>
+      <button id="epiPlay">Pause</button>
+      <button id="epiRestart">Restart</button>
+    </div>
+    <p class="readout" id="epiReadout"></p>
+
+    <h2>Spectrum |c<sub>k</sub>|</h2>
+    <canvas id="spec"></canvas>
+    <p class="hint">Red bars are the harmonics kept by the slider. Cutting the grey ones smooths the shape; adding them sharpens tips.</p>
+
+    <h2>The maths</h2>
+    <div class="math">
+      <div><b>Motif</b><code>z(t) = &Sigma; c<sub>k</sub> e<sup>ikt</sup></code></div>
+      <div><b>Rosette</b><code>r(&theta;) = &rho; + &Sigma; a<sub>n</sub> cos(n&middot;m&middot;&theta;)</code></div>
+      <div><b>Band</b><code>v(u) = &Sigma; b<sub>n</sub> sin(2&pi;n&middot;u/p)</code></div>
+      <div><b>Symmetry</b><code>m-fold &hArr; only k &equiv; 1 (mod m)</code></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+// Fourier core: closed curves stored as complex coefficients c_k (k = -K..K), z(t) = sum c_k e^{ikt}.
+(function (BG) {
+  const TWO_PI = Math.PI * 2;
+
+  // Seeded Mulberry32 generator: returns a function giving uniform numbers in [0,1).
+  BG.rng = function (seed) {
+    let a = (seed >>> 0) || 1;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+
+  // Box-Muller standard normal sample drawn from a uniform generator.
+  BG.gauss = function (rand) {
+    const u = Math.max(rand(), 1e-9);
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(TWO_PI * rand());
+  };
+
+  // Allocates an all-zero coefficient set holding harmonics k = -K..K at index k+K.
+  BG.makeCoeffs = function (K) {
+    return { K: K, re: new Float64Array(2 * K + 1), im: new Float64Array(2 * K + 1) };
+  };
+
+  // Forward DFT: converts n evenly spaced closed-curve points [[x,y],...] into coefficients for |k| <= K.
+  BG.dft = function (pts, K) {
+    const n = pts.length;
+    const c = BG.makeCoeffs(K);
+    for (let k = -K; k <= K; k++) {
+      let sr = 0, si = 0;
+      for (let j = 0; j < n; j++) {
+        const a = (-k * TWO_PI * j) / n;
+        const cs = Math.cos(a), sn = Math.sin(a);
+        sr += pts[j][0] * cs - pts[j][1] * sn;
+        si += pts[j][0] * sn + pts[j][1] * cs;
+      }
+      c.re[k + K] = sr / n;
+      c.im[k + K] = si / n;
+    }
+    return c;
+  };
+
+  // Returns a copy of the coefficients keeping only harmonics |k| <= N (the "detail" knob).
+  BG.truncate = function (c, N) {
+    const out = BG.makeCoeffs(c.K);
+    const lim = Math.min(N, c.K);
+    for (let k = -lim; k <= lim; k++) {
+      out.re[k + c.K] = c.re[k + c.K];
+      out.im[k + c.K] = c.im[k + c.K];
+    }
+    return out;
+  };
+
+  // Linear interpolation between two coefficient sets (a shape morph in coefficient space).
+  BG.lerp = function (a, b, t) {
+    const K = Math.max(a.K, b.K);
+    const out = BG.makeCoeffs(K);
+    for (let k = -K; k <= K; k++) {
+      const ar = Math.abs(k) <= a.K ? a.re[k + a.K] : 0, ai = Math.abs(k) <= a.K ? a.im[k + a.K] : 0;
+      const br = Math.abs(k) <= b.K ? b.re[k + b.K] : 0, bi = Math.abs(k) <= b.K ? b.im[k + b.K] : 0;
+      out.re[k + K] = ar + (br - ar) * t;
+      out.im[k + K] = ai + (bi - ai) * t;
+    }
+    return out;
+  };
+
+  // Adds smooth random noise to every harmonic, damped as (1+|k|)^-1.6 so shapes stay plausible.
+  BG.perturb = function (c, sigma, rand) {
+    if (sigma <= 0) return c;
+    const out = BG.makeCoeffs(c.K);
+    for (let k = -c.K; k <= c.K; k++) {
+      const d = k === 0 ? 0 : sigma / Math.pow(1 + Math.abs(k), 1.6); // k=0 is the position, keep it fixed
+      out.re[k + c.K] = c.re[k + c.K] + d * BG.gauss(rand);
+      out.im[k + c.K] = c.im[k + c.K] + d * BG.gauss(rand);
+    }
+    return out;
+  };
+
+  // Zeroes every harmonic with (k-1) not divisible by m, which forces m-fold rotational symmetry.
+  BG.symmetric = function (c, m) {
+    const out = BG.makeCoeffs(c.K);
+    for (let k = -c.K; k <= c.K; k++) {
+      if ((((k - 1) % m) + m) % m === 0) {
+        out.re[k + c.K] = c.re[k + c.K];
+        out.im[k + c.K] = c.im[k + c.K];
+      }
+    }
+    return out;
+  };
+
+  const trigCache = {};
+  // Builds (and caches) cos/sin tables of k*t_j for every k in -K..K and J sample angles.
+  function trigTables(K, J) {
+    const key = K + '|' + J;
+    if (trigCache[key]) return trigCache[key];
+    const w = 2 * K + 1;
+    const cosT = new Float64Array(w * J), sinT = new Float64Array(w * J);
+    for (let k = -K; k <= K; k++) {
+      for (let j = 0; j < J; j++) {
+        const a = (k * TWO_PI * j) / J;
+        cosT[(k + K) * J + j] = Math.cos(a);
+        sinT[(k + K) * J + j] = Math.sin(a);
+      }
+    }
+    return (trigCache[key] = { cosT: cosT, sinT: sinT });
+  }
+
+  // Sums the series at J evenly spaced parameters and returns interleaved [x0,y0,x1,y1,...].
+  BG.evalCurve = function (c, J) {
+    const K = c.K, tb = trigTables(K, J);
+    const out = new Float64Array(2 * J);
+    for (let i = 0; i <= 2 * K; i++) {
+      const re = c.re[i], im = c.im[i];
+      if (re === 0 && im === 0) continue;
+      const base = i * J;
+      for (let j = 0; j < J; j++) {
+        const cs = tb.cosT[base + j], sn = tb.sinT[base + j];
+        out[2 * j] += re * cs - im * sn;
+        out[2 * j + 1] += re * sn + im * cs;
+      }
+    }
+    return out;
+  };
+
+  // Evaluates the series at a single parameter t (used by the epicycle animation).
+  BG.evalAt = function (c, t) {
+    let x = 0, y = 0;
+    for (let k = -c.K; k <= c.K; k++) {
+      const re = c.re[k + c.K], im = c.im[k + c.K];
+      const cs = Math.cos(k * t), sn = Math.sin(k * t);
+      x += re * cs - im * sn;
+      y += re * sn + im * cs;
+    }
+    return [x, y];
+  };
+
+  // Lists the non-zero circles as {k, r, phase} sorted by radius, biggest circle first.
+  BG.epicycles = function (c) {
+    const list = [];
+    for (let k = -c.K; k <= c.K; k++) {
+      const re = c.re[k + c.K], im = c.im[k + c.K];
+      const r = Math.hypot(re, im);
+      if (r > 1e-9) list.push({ k: k, r: r, phase: Math.atan2(im, re) });
+    }
+    list.sort(function (a, b) { return b.r - a.r; });
+    return list;
+  };
+
+  // Counts the real numbers needed to store the non-zero harmonics of a coefficient set.
+  BG.countNumbers = function (c) {
+    let n = 0;
+    for (let i = 0; i < c.re.length; i++) if (c.re[i] !== 0 || c.im[i] !== 0) n += 2;
+    return n;
+  };
+
+  // Returns [minX, minY, maxX, maxY] of an interleaved xy array.
+  BG.bounds = function (xy) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < xy.length; i += 2) {
+      if (xy[i] < x0) x0 = xy[i];
+      if (xy[i] > x1) x1 = xy[i];
+      if (xy[i + 1] < y0) y0 = xy[i + 1];
+      if (xy[i + 1] > y1) y1 = xy[i + 1];
+    }
+    return [x0, y0, x1, y1];
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Motif library: outlines are sampled, run through the DFT, and stored as coefficient sets; also rosette and band series.
+(function (BG) {
+  const TWO_PI = Math.PI * 2;
+  const LIB_K = 48;   // harmonics stored per motif
+  const LIB_PTS = 256; // outline samples fed to the DFT
+
+  // Half-profiles (right side, base at y=0 to tip at y=1); a third value of 1 marks a sharp corner.
+  const HALF = {
+    petal: [[0, 0], [0.17, 0.1], [0.3, 0.36], [0.27, 0.62], [0.13, 0.86], [0, 1, 1]],
+    leaf: [[0, 0], [0.1, 0.1], [0.2, 0.24], [0.13, 0.3, 1], [0.25, 0.48], [0.15, 0.55, 1], [0.2, 0.74], [0.09, 0.84], [0, 1, 1]],
+    fish: [[0, 0.12, 1], [0.3, -0.02, 1], [0.08, 0.24], [0.2, 0.42], [0.27, 0.62], [0.2, 0.84], [0, 1]],
+    paisley: [[0, 0], [0.2, 0.04], [0.3, 0.2], [0.27, 0.42], [0.16, 0.68], [0.06, 0.9], [0, 1, 1]],
+    bloom: [[0, 0], [0.14, 0.02], [0.36, 0.12], [0.5, 0.42, 1], [0.26, 0.36, 1], [0.2, 0.62], [0.09, 0.86], [0, 1, 1]]
+  };
+  BG.MOTIF_NAMES = ['petal', 'leaf', 'fish', 'paisley', 'bloom'];
+
+  // Builds the closed control ring: right side base->tip, then the mirrored left side tip->base.
+  function ringFromHalf(half) {
+    const right = half.map(function (p) { return p.slice(); });
+    const left = half.slice(1, -1).reverse().map(function (p) { return [-p[0], p[1], p[2]]; });
+    return right.concat(left);
+  }
+
+  // Closed Catmull-Rom spline through control points (sharp points are doubled), returns a dense polyline.
+  function catmull(ctrl, per) {
+    const pts = [];
+    ctrl.forEach(function (p) { pts.push(p); if (p[2]) pts.push(p); });
+    const n = pts.length, out = [];
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      if (p1 === p2) continue;
+      for (let s = 0; s < per; s++) {
+        const t = s / per, t2 = t * t, t3 = t2 * t;
+        const x = 0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+        const y = 0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+        out.push([x, y]);
+      }
+    }
+    return out;
+  }
+
+  // Resamples a closed polyline to n points spaced equally by arc length.
+  function resample(pts, n) {
+    const m = pts.length, cum = [0];
+    for (let i = 1; i <= m; i++) {
+      const a = pts[i - 1], b = pts[i % m];
+      cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+    }
+    const total = cum[m], out = [];
+    let seg = 0;
+    for (let j = 0; j < n; j++) {
+      const target = (total * j) / n;
+      while (cum[seg + 1] < target) seg++;
+      const a = pts[seg], b = pts[(seg + 1) % m];
+      const f = (target - cum[seg]) / Math.max(cum[seg + 1] - cum[seg], 1e-12);
+      out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+    }
+    return out;
+  }
+
+  BG.resample = resample;
+
+  // Samples one named motif outline as LIB_PTS arc-length-spaced points (paisley gets its curl here).
+  function outline(name) {
+    let ring = catmull(ringFromHalf(HALF[name]), 18);
+    if (name === 'paisley') ring = ring.map(function (p) { return [p[0] + 0.55 * p[1] * p[1] - 0.15 * p[1], p[1]]; });
+    return resample(ring, LIB_PTS);
+  }
+
+  BG.motifs = {};
+  BG.MOTIF_NAMES.forEach(function (name) { BG.motifs[name] = BG.dft(outline(name), LIB_K); });
+
+  // Registers a user outline (already resampled to closed points, base at y=0, height 1) as a new motif.
+  BG.addCustomMotif = function (name, pts) {
+    BG.motifs[name] = BG.dft(resample(pts, LIB_PTS), LIB_K);
+    return BG.motifs[name];
+  };
+
+  // Polar Fourier rosette r(a)=rho+(1-rho)*norm(sum cos(n*m*a)/n^p): m petals, N harmonics, returns interleaved xy.
+  BG.rosetteCurve = function (m, N, rho, p, J) {
+    const s = new Float64Array(J);
+    let lo = Infinity, hi = -Infinity;
+    for (let j = 0; j < J; j++) {
+      const a = (TWO_PI * j) / J;
+      let v = 0;
+      for (let n = 1; n <= N; n++) v += Math.cos(n * m * a) / Math.pow(n, p);
+      s[j] = v;
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    const out = new Float64Array(2 * J), span = Math.max(hi - lo, 1e-9);
+    for (let j = 0; j < J; j++) {
+      const a = (TWO_PI * j) / J;
+      const r = rho + (1 - rho) * ((s[j] - lo) / span);
+      out[2 * j] = r * Math.cos(a);
+      out[2 * j + 1] = r * Math.sin(a);
+    }
+    return out;
+  };
+
+  // Builds an m-fold star from just three circles (k = 1, 1+m, 1-m), so symmetry is automatic.
+  BG.starCoeffs = function (m, sharp) {
+    const K = m + 1, c = BG.makeCoeffs(K);
+    c.re[1 + K] = 1;
+    c.re[1 + m + K] = sharp / (1 + m);
+    c.re[1 - m + K] = 0.3 * sharp / Math.max(m - 1, 1);
+    return c;
+  };
+
+  // Fourier series of the scallop wave |sin x| (0..1) truncated to N cosine harmonics.
+  BG.scallopSeries = function (x, N) {
+    let v = 2 / Math.PI;
+    for (let j = 1; j <= N; j++) v -= ((4 / Math.PI) * Math.cos(2 * j * x)) / (4 * j * j - 1);
+    return Math.min(Math.max(v, 0), 1.08);
+  };
+
+  // Fourier series of the triangle wave (-1..1) truncated to N odd sine harmonics.
+  BG.triangleSeries = function (x, N) {
+    let v = 0;
+    for (let j = 0; j < N; j++) v += ((j % 2 ? -1 : 1) * Math.sin((2 * j + 1) * x)) / ((2 * j + 1) * (2 * j + 1));
+    return (8 / (Math.PI * Math.PI)) * v;
+  };
+
+  const vineNorm = {};
+  // Vine centre-line series sum sin(n x)/n^1.6, normalised so its peak is 1 for any N.
+  BG.vineSeries = function (x, N) {
+    if (!vineNorm[N]) {
+      let mx = 0;
+      for (let i = 0; i < 128; i++) {
+        let v = 0;
+        for (let n = 1; n <= N; n++) v += Math.sin((n * TWO_PI * i) / 128) / Math.pow(n, 1.6);
+        mx = Math.max(mx, Math.abs(v));
+      }
+      vineNorm[N] = mx;
+    }
+    let v = 0;
+    for (let n = 1; n <= N; n++) v += Math.sin(n * x) / Math.pow(n, 1.6);
+    return v / vineNorm[N];
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Style presets: each art form is data only (palette, band stack, corner rosette, default knob values).
+(function (BG) {
+  BG.STYLES = {
+    pattachitra: {
+      label: 'Pattachitra (Odisha)',
+      blurb: 'Lotus petals, creeper vine, scallops; vermilion, ochre, indigo.',
+      palette: { paper: '#f3e3b5', ink: '#1d1512', vermilion: '#c4301d', yellow: '#e8a71c', indigo: '#1f2f5e', white: '#fbf4e2', green: '#3d6b3c' },
+      ruleH: 3.5, ruleColor: 'ink', primary: 'petal', morphTo: 'fish',
+      defaults: { N: 14, m: 8, count: 5, period: 78, thickness: 190, variation: 12 },
+      layers: [
+        { type: 'motifs', motif: 'primary', mode: 'alt', w: 3.2, bg: 'yellow', fill: ['vermilion', 'white'], inner: ['yellow', 'vermilion'], sw: 1.4 },
+        { type: 'vine', leaf: 'leaf', w: 3, bg: 'white', stroke: 'indigo', fill: ['vermilion', 'green', 'yellow'], sw: 2 },
+        { type: 'dots', w: 1.3, bg: 'ink', fill: ['white', 'yellow'], per: 2, r: 0.95, rows: 1 },
+        { type: 'wave', shape: 'scallop', w: 2.4, bg: 'indigo', fill: ['vermilion', 'yellow', 'white'], rows: 3, sw: 1.1 },
+        { type: 'rosettes', w: 2.6, bg: 'yellow', fill: ['vermilion', 'indigo', 'white'], sw: 1.2 }
+      ],
+      corner: {
+        bg: 'yellow',
+        rings: [
+          { t: 'polar', r: 0.98, rho: 0.42, p: 2.1, fill: 'vermilion' },
+          { t: 'polar', r: 0.74, rho: 0.4, p: 2.1, fill: 'white', rot: 0.5 },
+          { t: 'polar', r: 0.52, rho: 0.45, p: 2.1, fill: 'indigo' },
+          { t: 'star', r: 0.36, sharp: 0.9, fill: 'yellow' },
+          { t: 'disc', r: 0.12, fill: 'vermilion' }
+        ]
+      }
+    },
+
+    madhubani: {
+      label: 'Madhubani (Bihar)',
+      blurb: 'Double-line fish, hatching, bold colour blocks.',
+      palette: { paper: '#f7ead0', ink: '#1a1a1a', red: '#b3261e', pink: '#d9557a', yellow: '#f0b400', green: '#2e7d4f', white: '#fffaf0' },
+      ruleH: 3, ruleColor: 'ink', primary: 'fish', morphTo: 'leaf',
+      defaults: { N: 10, m: 8, count: 5, period: 86, thickness: 190, variation: 10 },
+      layers: [
+        { type: 'motifs', motif: 'primary', mode: 'alt', w: 3.4, bg: 'white', fill: ['yellow', 'pink', 'green'], sw: 1.4, dbl: true },
+        { type: 'hatch', w: 1.4, bg: 'yellow', stroke: 'ink', sw: 1.6 },
+        { type: 'wave', shape: 'zigzag', w: 2.4, bg: 'red', fill: ['white', 'yellow'], rows: 2, sw: 1.2 },
+        { type: 'dots', w: 1.6, bg: 'green', fill: ['white', 'yellow'], per: 2, r: 0.9, rows: 2 },
+        { type: 'vine', leaf: 'petal', w: 3, bg: 'pink', stroke: 'ink', fill: ['yellow', 'white', 'green'], sw: 2 }
+      ],
+      corner: {
+        bg: 'white',
+        rings: [
+          { t: 'polar', r: 0.98, rho: 0.45, p: 2.1, fill: 'red' },
+          { t: 'polar', r: 0.72, rho: 0.42, p: 2.1, fill: 'yellow', rot: 0.5 },
+          { t: 'polar', r: 0.5, rho: 0.5, p: 2.1, fill: 'green' },
+          { t: 'star', r: 0.34, sharp: 0.85, fill: 'white' },
+          { t: 'disc', r: 0.1, fill: 'ink' }
+        ]
+      }
+    },
+
+    warli: {
+      label: 'Warli (Maharashtra)',
+      blurb: 'Few harmonics: triangles, zigzags and dots in white on terracotta.',
+      palette: { paper: '#a3452a', ink: '#5a1e0e', clay: '#a3452a', white: '#fff6e8' },
+      ruleH: 3, ruleColor: 'white', primary: 'petal', morphTo: 'leaf',
+      defaults: { N: 5, m: 6, count: 5, period: 70, thickness: 180, variation: 10 },
+      layers: [
+        { type: 'wave', shape: 'zigzag', w: 2.6, bg: 'clay', fill: ['white'], rows: 2, sw: 2.2, outline: true },
+        { type: 'dots', w: 1.2, bg: 'clay', fill: ['white'], per: 2, r: 0.7, rows: 1 },
+        { type: 'motifs', motif: 'primary', mode: 'alt', w: 3, bg: 'clay', fill: ['white'], sw: 1.6 },
+        { type: 'hatch', w: 1.3, bg: 'clay', stroke: 'white', sw: 2 },
+        { type: 'wave', shape: 'zigzag', w: 2.2, bg: 'clay', fill: ['white'], rows: 1, sw: 1.2 }
+      ],
+      corner: {
+        bg: 'clay', stroke: 'white',
+        rings: [
+          { t: 'polar', r: 0.98, rho: 0.5, p: 2.1, fill: 'white' },
+          { t: 'polar', r: 0.74, rho: 0.5, p: 2.1, fill: 'clay', rot: 0.5 },
+          { t: 'star', r: 0.44, sharp: 0.85, fill: 'white' },
+          { t: 'disc', r: 0.13, fill: 'clay' }
+        ]
+      }
+    },
+
+    gond: {
+      label: 'Gond (Madhya Pradesh)',
+      blurb: 'Dot-and-dash fills, paisley forms, bright hues on black.',
+      palette: { paper: '#171412', ink: '#0d0b0a', yellow: '#f4c430', red: '#e2412c', cyan: '#2ec4b6', magenta: '#d6336c', white: '#fdf6e3' },
+      ruleH: 3, ruleColor: 'yellow', primary: 'paisley', morphTo: 'bloom',
+      defaults: { N: 12, m: 10, count: 5, period: 74, thickness: 190, variation: 12 },
+      layers: [
+        { type: 'motifs', motif: 'primary', mode: 'alt', w: 3.4, bg: 'red', fill: ['yellow', 'cyan'], inner: ['ink', 'magenta'], sw: 1.4 },
+        { type: 'dots', w: 1.5, bg: 'ink', fill: ['yellow', 'white'], per: 3, r: 0.8, rows: 2 },
+        { type: 'hatch', w: 1.4, bg: 'ink', stroke: 'white', sw: 1.8 },
+        { type: 'wave', shape: 'scallop', w: 2.4, bg: 'cyan', fill: ['yellow', 'magenta', 'ink'], rows: 3, sw: 1.1 },
+        { type: 'rosettes', w: 2.6, bg: 'ink', fill: ['magenta', 'yellow', 'white'], sw: 1.2 }
+      ],
+      corner: {
+        bg: 'ink',
+        rings: [
+          { t: 'polar', r: 0.98, rho: 0.45, p: 2.1, fill: 'magenta' },
+          { t: 'polar', r: 0.74, rho: 0.42, p: 2.1, fill: 'yellow', rot: 0.5 },
+          { t: 'polar', r: 0.52, rho: 0.45, p: 2.1, fill: 'cyan' },
+          { t: 'star', r: 0.34, sharp: 0.9, fill: 'red' },
+          { t: 'disc', r: 0.1, fill: 'white' }
+        ]
+      }
+    }
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Band drawers: each works in local side coordinates (u along the side, v inward from the outer edge) and returns SVG strings.
+(function (BG) {
+  const TWO_PI = Math.PI * 2;
+
+  // Rounds a number to one decimal for compact SVG output.
+  function f(n) { return String(Math.round(n * 10) / 10); }
+
+  // Converts an interleaved xy array to a closed path string, mapping each point through fn(x,y)->[X,Y].
+  function dOf(xy, fn) {
+    let d = '';
+    for (let i = 0; i < xy.length; i += 2) {
+      const p = fn(xy[i], xy[i + 1]);
+      d += (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1]);
+    }
+    return d + 'Z';
+  }
+
+  // Builds a <path> element string from path data and paint settings (empty string skips an attribute).
+  function pathEl(d, fill, stroke, sw, id) {
+    return '<path' + (id ? ' id="' + id + '"' : '') + ' d="' + d + '" fill="' + (fill || 'none') + '"' +
+      (stroke ? ' stroke="' + stroke + '" stroke-width="' + sw + '"' : '') + '/>';
+  }
+
+  // Builds a <circle> element string.
+  function circleEl(cx, cy, r, fill, stroke, sw) {
+    return '<circle cx="' + f(cx) + '" cy="' + f(cy) + '" r="' + f(r) + '" fill="' + fill + '"' +
+      (stroke ? ' stroke="' + stroke + '" stroke-width="' + sw + '"' : '') + '/>';
+  }
+
+  // Picks the i-th entry of a colour-name list and resolves it through the palette.
+  function pick(ctx, list, i) { return ctx.pal[list[i % list.length]]; }
+
+  // Number of repeats that fit a side exactly, so patterns close seamlessly at the corners.
+  function repeats(ctx, L) {
+    const n = Math.max(1, Math.round(L / ctx.state.period));
+    return { n: n, pp: L / n };
+  }
+
+  // Motif frieze: petals/fish/etc. repeated along the band, alternating direction so neighbours interlock.
+  function drawMotifs(ctx, L, y0, h, layer) {
+    const out = [], ink = ctx.pal[ctx.style.ink || 'ink'];
+    const r = repeats(ctx, L), alt = layer.mode === 'alt';
+    const count = alt ? 2 * r.n : r.n, step = L / count;
+    const s = Math.min(h * 0.92, step * 1.7), tp = ctx.tp;
+    for (let i = 0; i < count; i++) {
+      const uc = step * (i + 0.5), d = alt && i % 2 ? 1 : -1;
+      const vb = y0 + h / 2 - (d * s) / 2;
+      const c = BG.perturb(ctx.motif(layer.motif), ctx.variation, ctx.rand);
+      const xy = BG.evalCurve(c, 96);
+      const fill = pick(ctx, layer.fill, i >> (alt ? 1 : 0));
+      // Maps a motif-local point to canvas coordinates for this frieze slot (scale s, direction d).
+      const map = function (x, y) { return tp(uc + s * x, vb + d * s * y); };
+      if (layer.dbl) out.push(pathEl(dOf(xy, map), 'none', ink, layer.sw * 2.6));
+      out.push(pathEl(dOf(xy, map), fill, layer.dbl ? ctx.pal.paper : ink, layer.dbl ? layer.sw * 0.9 : layer.sw));
+      if (layer.inner) {
+        // Same mapping as above but shrunk to 55% about the motif's belly for the inner petal.
+        const inner = function (x, y) { return tp(uc + s * 0.55 * x, vb + d * s * (0.42 + (y - 0.42) * 0.55)); };
+        out.push(pathEl(dOf(xy, inner), pick(ctx, layer.inner, i >> (alt ? 1 : 0)), ink, layer.sw * 0.8));
+      }
+    }
+    return out;
+  }
+
+  // Creeper vine: a Fourier centre-line with leaves at alternate zero-crossings and buds at the crests.
+  function drawVine(ctx, L, y0, h, layer) {
+    const out = [], tp = ctx.tp, ink = ctx.pal[ctx.style.ink || 'ink'];
+    const r = repeats(ctx, L), Nv = Math.max(1, Math.round(ctx.state.N / 4));
+    const cy = y0 + h / 2, amp = h * 0.24;
+    // Vine centre-line offset v at position u along the band (Fourier series).
+    const vAt = function (u) { return cy + amp * BG.vineSeries((TWO_PI * u) / r.pp, Nv); };
+    let d = '';
+    for (let u = 0; u <= L + 0.01; u += 2) {
+      const p = tp(u, vAt(u));
+      d += (u ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1]);
+    }
+    out.push(pathEl(d, 'none', ctx.pal[layer.stroke], layer.sw));
+    for (let j = 1; j < 2 * r.n; j++) {
+      const u = (j * r.pp) / 2, side = j % 2 ? 1 : -1;
+      const slope = (vAt(u + 0.5) - vAt(u - 0.5)) / 1;
+      const ang = Math.atan2(slope, 1) + side * 1.15;
+      const dir = [Math.cos(ang), Math.sin(ang)];
+      const s = h * 0.56 * (0.9 + 0.2 * ctx.rand()), v0 = vAt(u);
+      const c = BG.perturb(ctx.motif(layer.leaf), ctx.variation, ctx.rand);
+      const xy = BG.evalCurve(c, 72);
+      // Rotates a leaf-local point to point along dir, scales it and places it on the vine node.
+      const map = function (x, y) { return tp(u + s * (x * dir[1] + y * dir[0]), v0 + s * (-x * dir[0] + y * dir[1])); };
+      out.push(pathEl(dOf(xy, map), pick(ctx, layer.fill, j), ink, 1.1));
+    }
+    for (let j = 0; j < 2 * r.n; j++) {
+      const u = (r.pp * (0.25 + 0.5 * j)), p = ctx.tp(u, vAt(u));
+      out.push(circleEl(p[0], p[1], h * 0.055, pick(ctx, layer.fill, 2), ink, 0.8));
+    }
+    return out;
+  }
+
+  // Fourier wave band: scallops (|sin| series) or zigzag (triangle series), stacked in nested rows.
+  function drawWave(ctx, L, y0, h, layer) {
+    const out = [], tp = ctx.tp, ink = ctx.pal[ctx.style.ink || 'ink'];
+    const r = repeats(ctx, L), N = Math.max(1, Math.min(ctx.state.N, 40)), rows = layer.rows || 1;
+    const line = layer.outline ? ctx.pal[layer.fill[0]] : ink;
+    for (let row = 0; row < rows; row++) {
+      const pts = [];
+      for (let u = 0; u <= L + 0.01; u += 2) {
+        let v;
+        if (layer.shape === 'scallop') {
+          const hh = h * 0.96 * Math.pow(0.72, row);
+          v = y0 + h - hh * BG.scallopSeries((Math.PI * u) / r.pp, N);
+        } else {
+          const amp = h * 0.36 * (1 - row * 0.3), cy = y0 + h * (0.42 + row * 0.16);
+          v = cy - amp * BG.triangleSeries((TWO_PI * u) / r.pp, N);
+        }
+        pts.push(tp(u, Math.min(v, y0 + h)));
+      }
+      let d = '';
+      pts.forEach(function (p, i) { d += (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1]); });
+      if (layer.outline) { out.push(pathEl(d, 'none', line, layer.sw)); continue; }
+      const a = tp(L, y0 + h), b = tp(0, y0 + h);
+      d += 'L' + f(a[0]) + ' ' + f(a[1]) + 'L' + f(b[0]) + ' ' + f(b[1]) + 'Z';
+      out.push(pathEl(d, pick(ctx, layer.fill, row), line, layer.sw));
+    }
+    return out;
+  }
+
+  // Dot rows: evenly spaced circles in one or two staggered rows.
+  function drawDots(ctx, L, y0, h, layer) {
+    const out = [], ink = ctx.pal[ctx.style.ink || 'ink'];
+    const r = repeats(ctx, L), per = layer.per || 2, rows = layer.rows || 1;
+    const q = r.pp / per, rad = Math.min((h / rows) * 0.31, q * 0.42) * (layer.r || 1);
+    for (let row = 0; row < rows; row++) {
+      const v = y0 + (h * (row + 0.5)) / rows, off = row % 2 ? q / 2 : 0;
+      for (let i = 0; i < r.n * per; i++) {
+        const u = q * (i + 0.5) + off;
+        if (u > L - rad) continue;
+        const p = ctx.tp(u, v);
+        out.push(circleEl(p[0], p[1], rad, pick(ctx, layer.fill, i + row), ink, 0.6));
+      }
+    }
+    return out;
+  }
+
+  // Chain of small polar-Fourier flowers (m petals, N harmonics) centred along the band.
+  function drawRosettes(ctx, L, y0, h, layer) {
+    const out = [], ink = ctx.pal[ctx.style.ink || 'ink'], st = ctx.state, tp = ctx.tp;
+    const n = Math.max(1, Math.round(L / (h * 1.08))), q = L / n, R = Math.min(h * 0.47, q * 0.5);
+    const m = st.m, Nr = Math.max(2, Math.min(st.N, 16)), J = Math.max(96, m * 20);
+    const big = BG.rosetteCurve(m, Nr, 0.45, 2.1, J), small = BG.rosetteCurve(m, Nr, 0.5, 2.1, J);
+    const half = Math.PI / m, ch = Math.cos(half), sh = Math.sin(half);
+    for (let i = 0; i < n; i++) {
+      const cu = q * (i + 0.5), cv = y0 + h / 2;
+      out.push(pathEl(dOf(big, function (x, y) { return tp(cu + R * x, cv + R * y); }), pick(ctx, layer.fill, 0), ink, layer.sw));
+      out.push(pathEl(dOf(small, function (x, y) {
+        return tp(cu + 0.62 * R * (x * ch - y * sh), cv + 0.62 * R * (x * sh + y * ch));
+      }), pick(ctx, layer.fill, 1), ink, layer.sw * 0.8));
+      const c = tp(cu, cv);
+      out.push(circleEl(c[0], c[1], R * 0.18, pick(ctx, layer.fill, 2), ink, 0.8));
+    }
+    return out;
+  }
+
+  // Hatching: slanted strokes repeated along the band (Madhubani-style filler).
+  function drawHatch(ctx, L, y0, h, layer) {
+    const r = repeats(ctx, L), q = r.pp / 3, out = [];
+    let d = '';
+    for (let i = 0; i < r.n * 3; i++) {
+      const u = q * i + q * 0.2;
+      const a = ctx.tp(u, y0 + h * 0.18), b = ctx.tp(u + q * 0.55, y0 + h * 0.82);
+      d += 'M' + f(a[0]) + ' ' + f(a[1]) + 'L' + f(b[0]) + ' ' + f(b[1]);
+    }
+    out.push(pathEl(d, 'none', ctx.pal[layer.stroke], layer.sw));
+    return out;
+  }
+
+  BG.LAYER_DRAWERS = { motifs: drawMotifs, vine: drawVine, wave: drawWave, dots: drawDots, rosettes: drawRosettes, hatch: drawHatch };
+  BG.svgUtil = { f: f, dOf: dOf, pathEl: pathEl, circleEl: circleEl };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Frame layout: stacks bands on each side, places corner rosettes, and assembles the final SVG string.
+(function (BG) {
+  const U = BG.svgUtil, f = U.f;
+
+  // Returns the four side transforms (top,right,bottom,left) mapping local (u,v) to canvas x,y.
+  function sideTransforms(W, H, T) {
+    return [
+      function (u, v) { return [T + u, v]; },
+      function (u, v) { return [W - v, T + u]; },
+      function (u, v) { return [W - T - u, H - v]; },
+      function (u, v) { return [v, H - T - u]; }
+    ];
+  }
+
+  // Draws a layered rosette (polar-Fourier petals, 3-circle star, discs) centred at cx,cy with outer radius R.
+  function drawRosetteArt(ctx, cx, cy, R, spec) {
+    const out = [], m = ctx.state.m, ink = ctx.pal.ink, N = Math.max(1, Math.min(ctx.state.N, 40));
+    const stroke = spec.stroke ? ctx.pal[spec.stroke] : ink, J = Math.max(160, m * 32);
+    spec.rings.forEach(function (ring, i) {
+      const rr = R * ring.r, fill = ctx.pal[ring.fill];
+      if (ring.t === 'disc') { out.push(U.circleEl(cx, cy, rr, fill, stroke, 1.3)); return; }
+      let xy, rot = (ring.rot || 0) * ((2 * Math.PI) / m);
+      if (ring.t === 'polar') {
+        xy = BG.rosetteCurve(m, N, ring.rho, ring.p, J);
+      } else {
+        xy = BG.evalCurve(BG.starCoeffs(m, ring.sharp), J);
+        const mx = BG.bounds(xy)[2], sc = 1 / Math.max(mx, 1e-9);
+        for (let k = 0; k < xy.length; k++) xy[k] *= sc;
+        rot += Math.PI / m;
+      }
+      const cs = Math.cos(rot), sn = Math.sin(rot);
+      out.push(U.pathEl(U.dOf(xy, function (x, y) { return [cx + rr * (x * cs - y * sn), cy + rr * (x * sn + y * cs)]; }), fill, stroke, 1.3, 'ring' + i));
+    });
+    return out;
+  }
+
+  // Counts the numbers describing a rosette spec: N harmonics + 2 shape params per polar ring, 3 per star, 2 per disc.
+  function rosetteNumbers(spec, N) {
+    return spec.rings.reduce(function (a, r) { return a + (r.t === 'polar' ? N + 2 : r.t === 'star' ? 3 : 2); }, 0);
+  }
+
+  // Resolves a layer's motif name ('primary' = lerp of the chosen A/B motifs) to truncated coefficients, cached.
+  function motifGetter(state) {
+    const cache = {};
+    return function (name) {
+      const key = name + '|' + state.motifA + '|' + state.motifB + '|' + state.morph + '|' + state.N;
+      if (!cache[key]) {
+        let c;
+        if (name === 'primary') c = BG.lerp(BG.motifs[state.motifA], BG.motifs[state.motifB], state.morph / 100);
+        else c = BG.motifs[name];
+        cache[key] = BG.truncate(c, state.N);
+      }
+      return cache[key];
+    };
+  }
+
+  // Builds the whole border as an SVG document string plus statistics about how few numbers describe it.
+  BG.buildFrame = function (state) {
+    const style = BG.STYLES[state.style], pal = style.palette;
+    const W = 1000, H = Math.round(W / state.aspect), T = state.thickness;
+    const layers = style.layers.slice(0, state.count);
+    const ruleH = style.ruleH, ruleCol = pal[style.ruleColor];
+    const ctx = {
+      style: style, pal: pal, state: state, rand: BG.rng(state.seed), tp: null,
+      variation: (state.variation / 100) * 0.2, motif: motifGetter(state),
+      stats: { motif: 0, series: 0, rosette: 0 }
+    };
+    const usedMotifs = {};
+    const flex = T - (layers.length + 1) * ruleH, wsum = layers.reduce(function (a, l) { return a + l.w; }, 0);
+    const bands = [];
+    let y = ruleH;
+    layers.forEach(function (layer) {
+      const h = (flex * layer.w) / wsum;
+      bands.push({ layer: layer, y0: y, h: h });
+      y += h + ruleH;
+      const names = layer.type === 'motifs' ? [layer.motif] : layer.type === 'vine' ? [layer.leaf] : [];
+      names.forEach(function (nm) {
+        const key = nm + '|' + (nm === 'primary' ? state.motifA + state.motifB + state.morph : '');
+        if (!usedMotifs[key]) { usedMotifs[key] = 1; ctx.stats.motif += BG.countNumbers(ctx.motif(nm)); }
+      });
+      if (layer.type === 'wave') ctx.stats.series += Math.min(state.N, 40) + 2;
+      if (layer.type === 'vine') ctx.stats.series += Math.max(1, Math.round(state.N / 4)) + 2;
+      if (layer.type === 'rosettes') ctx.stats.rosette += 2 * Math.min(state.N, 16) + 4;
+    });
+
+    const svg = [];
+    svg.push('<rect id="paper" width="' + W + '" height="' + H + '" fill="' + pal.paper + '"/>');
+    const names = ['top', 'right', 'bottom', 'left'], tfs = sideTransforms(W, H, T);
+    for (let s = 0; s < 4; s++) {
+      const L = s % 2 === 0 ? W - 2 * T : H - 2 * T;
+      ctx.tp = tfs[s];
+      svg.push('<g id="side-' + names[s] + '">');
+      bands.forEach(function (b, i) {
+        const p = [ctx.tp(0, b.y0), ctx.tp(L, b.y0), ctx.tp(L, b.y0 + b.h), ctx.tp(0, b.y0 + b.h)];
+        const rect = p.map(function (q, k) { return (k ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]); }).join('') + 'Z';
+        svg.push('<g id="' + names[s] + '-band' + (i + 1) + '-' + b.layer.type + '">');
+        svg.push(U.pathEl(rect, pal[b.layer.bg], null, 0));
+        svg.push('<g>' + BG.LAYER_DRAWERS[b.layer.type](ctx, L, b.y0, b.h, b.layer).join('') + '</g></g>');
+      });
+      for (let i = 0; i <= bands.length; i++) {
+        const v = i === 0 ? 0 : bands[i - 1].y0 + bands[i - 1].h;
+        const p = [ctx.tp(0, v), ctx.tp(L, v), ctx.tp(L, v + ruleH), ctx.tp(0, v + ruleH)];
+        svg.push(U.pathEl(p.map(function (q, k) { return (k ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]); }).join('') + 'Z', ruleCol, null, 0));
+      }
+      svg.push('</g>');
+    }
+
+    ctx.stats.rosette += rosetteNumbers(style.corner, Math.max(1, Math.min(state.N, 40))); // all corners share one description
+    const corners = [[0, 0], [W - T, 0], [W - T, H - T], [0, H - T]];
+    corners.forEach(function (c, i) {
+      svg.push('<g id="corner-' + (i + 1) + '">');
+      svg.push('<rect x="' + c[0] + '" y="' + c[1] + '" width="' + T + '" height="' + T + '" fill="' + pal[style.corner.bg] + '" stroke="' + ruleCol + '" stroke-width="' + ruleH + '"/>');
+      svg.push(drawRosetteArt(ctx, c[0] + T / 2, c[1] + T / 2, T * 0.46, style.corner).join(''));
+      svg.push('</g>');
+    });
+
+    svg.push('<rect id="frame-outer" x="' + ruleH / 2 + '" y="' + ruleH / 2 + '" width="' + (W - ruleH) + '" height="' + (H - ruleH) + '" fill="none" stroke="' + ruleCol + '" stroke-width="' + ruleH + '"/>');
+    svg.push('<rect id="frame-inner" x="' + T + '" y="' + T + '" width="' + (W - 2 * T) + '" height="' + (H - 2 * T) + '" fill="none" stroke="' + ruleCol + '" stroke-width="' + ruleH + '"/>');
+
+    if (state.medallion) {
+      const R = Math.min(W - 2 * T, H - 2 * T) * 0.36;
+      svg.push('<g id="centre-medallion">' + drawRosetteArt(ctx, W / 2, H / 2, R, style.corner).join('') + '</g>');
+    }
+
+    const st = ctx.stats, layoutNums = 8;
+    const total = st.motif + st.series + st.rosette + layoutNums;
+    const doc = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H +
+      '" stroke-linejoin="round" stroke-linecap="round">' + svg.join('') + '</svg>';
+    return { svg: doc, W: W, H: H, stats: { motif: st.motif, series: st.series, rosette: st.rosette, layout: layoutNums, total: total } };
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Image tracer: turns a silhouette image into a normalised closed outline that the DFT can learn from.
+(function (BG) {
+  // Builds a foreground mask from RGBA pixels: alpha if the image has transparency, else difference from the corner colour.
+  function makeMask(rgba, w, h) {
+    const mask = new Uint8Array(w * h);
+    let transparent = false;
+    for (let i = 3; i < rgba.length; i += 4) if (rgba[i] < 250) { transparent = true; break; }
+    // Luminance of the pixel starting at RGBA index i.
+    const lum = function (i) { return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2]; };
+    const corners = [0, (w - 1) * 4, (h - 1) * w * 4, ((h - 1) * w + w - 1) * 4].map(lum).sort(function (a, b) { return a - b; });
+    const bg = (corners[1] + corners[2]) / 2;
+    for (let p = 0; p < w * h; p++) {
+      mask[p] = transparent ? (rgba[4 * p + 3] > 128 ? 1 : 0) : (Math.abs(lum(4 * p) - bg) > 55 ? 1 : 0);
+    }
+    return mask;
+  }
+
+  // Keeps only the largest 4-connected blob of the mask (drops specks and noise).
+  function largestBlob(mask, w, h) {
+    const label = new Int32Array(w * h), sizes = [0];
+    const stack = new Int32Array(w * h);
+    let next = 1;
+    for (let s = 0; s < w * h; s++) {
+      if (!mask[s] || label[s]) continue;
+      let sp = 0, size = 0;
+      stack[sp++] = s;
+      label[s] = next;
+      while (sp) {
+        const p = stack[--sp], x = p % w, y = (p / w) | 0;
+        size++;
+        const nb = [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, y > 0 ? p - w : -1, y < h - 1 ? p + w : -1];
+        for (let k = 0; k < 4; k++) {
+          const q = nb[k];
+          if (q >= 0 && mask[q] && !label[q]) { label[q] = next; stack[sp++] = q; }
+        }
+      }
+      sizes[next++] = size;
+    }
+    let best = 0;
+    for (let i = 1; i < sizes.length; i++) if (!best || sizes[i] > sizes[best]) best = i;
+    const out = new Uint8Array(w * h);
+    for (let p = 0; p < w * h; p++) out[p] = label[p] === best && best ? 1 : 0;
+    return out;
+  }
+
+  // Moore-neighbour boundary tracing of the blob's outer edge; returns pixel coordinates in walking order.
+  function traceBoundary(mask, w, h) {
+    let sx = -1, sy = -1;
+    for (let p = 0; p < w * h && sx < 0; p++) if (mask[p]) { sx = p % w; sy = (p / w) | 0; }
+    if (sx < 0) return [];
+    const dx = [-1, -1, 0, 1, 1, 1, 0, -1], dy = [0, -1, -1, -1, 0, 1, 1, 1];
+    // True when (x,y) is inside the image and part of the mask.
+    const at = function (x, y) { return x >= 0 && y >= 0 && x < w && y < h && mask[y * w + x]; };
+    const pts = [[sx, sy]];
+    let cx = sx, cy = sy, dir = 0;
+    for (let guard = 0; guard < w * h * 8; guard++) {
+      let found = false;
+      for (let i = 0; i < 8; i++) {
+        const d = (dir + 6 + i) % 8, nx = cx + dx[d], ny = cy + dy[d];
+        if (at(nx, ny)) { cx = nx; cy = ny; dir = d; found = true; break; }
+      }
+      if (!found || (cx === sx && cy === sy)) break;
+      pts.push([cx, cy]);
+    }
+    return pts;
+  }
+
+  // Normalises a traced outline: y up, base at y=0 (start point), height 1, x centred, counter-clockwise, 256 points.
+  function normalise(pts) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    pts.forEach(function (p) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
+    const H = Math.max(y1 - y0, 1), cx = (x0 + x1) / 2;
+    let q = pts.map(function (p) { return [(p[0] - cx) / H, (y1 - p[1]) / H]; });
+    let area = 0;
+    for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; area += a[0] * b[1] - b[0] * a[1]; }
+    if (area < 0) q = q.reverse();
+    let s = 0;
+    for (let i = 1; i < q.length; i++) {
+      const better = q[i][1] < q[s][1] - 1e-9 || (Math.abs(q[i][1] - q[s][1]) < 1e-9 && Math.abs(q[i][0]) < Math.abs(q[s][0]));
+      if (better) s = i;
+    }
+    q = q.slice(s).concat(q.slice(0, s));
+    const sm = q.map(function (_, i) {
+      let sx = 0, sy = 0;
+      for (let k = -3; k <= 3; k++) { const r = q[(i + k + q.length) % q.length]; sx += r[0]; sy += r[1]; }
+      return [sx / 7, sy / 7];
+    });
+    return BG.resample(sm, 256);
+  }
+
+  // Traces raw RGBA pixels (w x h) and returns the normalised outline, or null if no usable shape is found.
+  BG.traceMask = function (rgba, w, h) {
+    const blob = largestBlob(makeMask(rgba, w, h), w, h);
+    const edge = traceBoundary(blob, w, h);
+    if (edge.length < 24) return null;
+    return normalise(edge);
+  };
+
+  // Downsamples an <img> to at most 160px, then traces it; returns the outline or null.
+  BG.traceImage = function (img) {
+    const scale = 160 / Math.max(img.naturalWidth, img.naturalHeight, 1);
+    const w = Math.max(8, Math.round(img.naturalWidth * Math.min(scale, 1))), h = Math.max(8, Math.round(img.naturalHeight * Math.min(scale, 1)));
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = h;
+    const g = cv.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0, w, h);
+    return BG.traceMask(g.getImageData(0, 0, w, h).data, w, h);
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Epicycle view: animates a coefficient set as chained rotating circles and draws its amplitude spectrum.
+(function (BG) {
+  const TWO_PI = Math.PI * 2;
+  const COL = { ink: '#1d1512', trail: '#c4301d', circle: 'rgba(29,21,18,0.28)', ghost: 'rgba(29,21,18,0.16)', keep: '#c4301d', cut: '#cdbf9f' };
+
+  // Sizes a canvas to its CSS box at device pixel ratio and returns its 2D context in CSS pixels.
+  function fitCanvas(canvas) {
+    const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    const g = canvas.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { g: g, w: w, h: h };
+  }
+
+  // Creates the animated view bound to two canvases (epicycles, spectrum); returns its control object.
+  BG.EpicycleView = function (canvas, specCanvas) {
+    const view = { playing: true, coeffs: null, N: 8, t0: performance.now(), loopMs: 9000, holdMs: 2200, pts: null, circles: [], box: null };
+
+    // Loads a new full coefficient set truncated to harmonics |k| <= N and restarts the animation.
+    view.setShape = function (coeffs, N) {
+      view.coeffs = coeffs;
+      view.N = N;
+      const cut = BG.truncate(coeffs, N);
+      view.cut = cut;
+      view.pts = BG.evalCurve(cut, 480);
+      view.circles = BG.epicycles(cut);
+      view.dc = [cut.re[cut.K], cut.im[cut.K]];
+      view.box = BG.bounds(view.pts);
+      view.drawSpectrum();
+    };
+
+    // Restarts the drawing from the beginning of the curve.
+    view.restart = function () { view.t0 = performance.now(); };
+
+    // Toggles play/pause, freezing the current phase when paused.
+    view.toggle = function () {
+      const now = performance.now();
+      if (view.playing) view.pausedAt = now - view.t0;
+      else view.t0 = now - (view.pausedAt || 0);
+      view.playing = !view.playing;
+      return view.playing;
+    };
+
+    // Draws one animation frame: ghost outline, growing trail, chained circles and the tracing tip.
+    view.frame = function (now) {
+      if (!view.pts) return;
+      const c = fitCanvas(canvas), g = c.g;
+      g.clearRect(0, 0, c.w, c.h);
+      const b = view.box, bw = b[2] - b[0], bh = b[3] - b[1], pad = 22;
+      const sc = Math.min((c.w - 2 * pad) / bw, (c.h - 2 * pad) / bh);
+      const ox = c.w / 2 - ((b[0] + b[2]) / 2) * sc, oy = c.h / 2 + ((b[1] + b[3]) / 2) * sc;
+      // Map model x/y to canvas pixels (y flipped so motifs point up).
+      const X = function (x) { return ox + x * sc; }, Y = function (y) { return oy - y * sc; };
+      const el = view.playing ? now - view.t0 : view.pausedAt || 0;
+      const cycle = view.loopMs + view.holdMs, ph = el % cycle;
+      const p = Math.min(ph / view.loopMs, 1), n = view.pts.length / 2;
+      const upto = Math.max(1, Math.floor(p * n));
+
+      g.lineWidth = 1;
+      g.strokeStyle = COL.ghost;
+      g.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const j = i % n;
+        g[i ? 'lineTo' : 'moveTo'](X(view.pts[2 * j]), Y(view.pts[2 * j + 1]));
+      }
+      g.stroke();
+
+      g.strokeStyle = COL.trail;
+      g.lineWidth = 2.6;
+      g.lineJoin = 'round';
+      g.beginPath();
+      for (let i = 0; i < upto; i++) g[i ? 'lineTo' : 'moveTo'](X(view.pts[2 * i]), Y(view.pts[2 * i + 1]));
+      if (p >= 1) g.closePath();
+      g.stroke();
+
+      const t = TWO_PI * ((upto - 1) / n);
+      let cx = view.dc[0], cy = view.dc[1];
+      g.lineWidth = 1;
+      view.circles.forEach(function (ci) {
+        if (ci.k === 0) return;
+        const a = ci.phase + ci.k * t, nx = cx + ci.r * Math.cos(a), ny = cy + ci.r * Math.sin(a);
+        if (ci.r * sc > 0.6 && p < 1) {
+          g.strokeStyle = COL.circle;
+          g.beginPath();
+          g.arc(X(cx), Y(cy), ci.r * sc, 0, TWO_PI);
+          g.stroke();
+          g.strokeStyle = COL.ink;
+          g.beginPath();
+          g.moveTo(X(cx), Y(cy));
+          g.lineTo(X(nx), Y(ny));
+          g.stroke();
+        }
+        cx = nx;
+        cy = ny;
+      });
+      g.fillStyle = COL.trail;
+      g.beginPath();
+      g.arc(X(cx), Y(cy), 3.6, 0, TWO_PI);
+      g.fill();
+    };
+
+    // Draws |c_k| for k = -K..K on a log scale; harmonics inside the kept band |k| <= N are highlighted.
+    view.drawSpectrum = function () {
+      if (!view.coeffs) return;
+      const c = fitCanvas(specCanvas), g = c.g, K = view.coeffs.K;
+      g.clearRect(0, 0, c.w, c.h);
+      const w = c.w / (2 * K + 1), base = c.h - 16, top = 6;
+      for (let k = -K; k <= K; k++) {
+        const a = Math.hypot(view.coeffs.re[k + K], view.coeffs.im[k + K]);
+        const v = Math.min(Math.max((Math.log10(Math.max(a, 1e-6)) + 4) / 4, 0), 1);
+        g.fillStyle = Math.abs(k) <= view.N ? COL.keep : COL.cut;
+        g.fillRect((k + K) * w + 0.5, base - v * (base - top), Math.max(w - 1, 1), v * (base - top));
+      }
+      g.fillStyle = COL.ink;
+      g.font = '10px system-ui, sans-serif';
+      g.textAlign = 'center';
+      g.fillText('k = -' + K, 22, c.h - 3);
+      g.fillText('0', c.w / 2, c.h - 3);
+      g.fillText('+' + K, c.w - 18, c.h - 3);
+    };
+
+    // Runs the requestAnimationFrame loop that keeps the epicycle canvas drawing.
+    view.start = function () {
+      // One animation-frame step: draw, then schedule the next frame.
+      const loop = function (now) { view.frame(now); requestAnimationFrame(loop); };
+      requestAnimationFrame(loop);
+    };
+    return view;
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Export helpers: SVG, PNG and parameter-JSON downloads for the generated border.
+(function (BG) {
+  // Triggers a browser download of a Blob under the given filename.
+  BG.download = function (blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  };
+
+  // Saves the border as a standalone, layer-grouped .svg file that opens cleanly in Inkscape or Illustrator.
+  BG.exportSvg = function (svgText, name) {
+    const doc = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgText.replace(/></g, '>\n<');
+    BG.download(new Blob([doc], { type: 'image/svg+xml' }), name + '.svg');
+  };
+
+  // Rasterises the SVG at 2x through an offscreen canvas and saves it as a PNG.
+  BG.exportPng = function (svgText, W, H, name) {
+    const img = new Image();
+    img.onload = function () {
+      const cv = document.createElement('canvas');
+      cv.width = W * 2;
+      cv.height = H * 2;
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(function (b) { BG.download(b, name + '.png'); }, 'image/png');
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+  };
+
+  // Lists the non-zero harmonics of a coefficient set as [{k, re, im}] rounded to 4 decimals.
+  function coeffList(c) {
+    const out = [];
+    for (let k = -c.K; k <= c.K; k++) {
+      const re = c.re[k + c.K], im = c.im[k + c.K];
+      if (re !== 0 || im !== 0) out.push({ k: k, re: +re.toFixed(4), im: +im.toFixed(4) });
+    }
+    return out;
+  }
+
+  // Saves the knob values plus the actual motif coefficients: the whole border is this small file.
+  BG.exportJson = function (state, stats, name) {
+    const style = BG.STYLES[state.style];
+    const motif = BG.truncate(BG.lerp(BG.motifs[state.motifA], BG.motifs[state.motifB], state.morph / 100), state.N);
+    const doc = {
+      about: 'Fourier Border Studio parameters: the border is generated from these numbers only.',
+      state: state, numbersTotal: stats.total,
+      primaryMotif: { model: 'z(t) = sum c_k e^{ikt}', harmonics: coeffList(motif) },
+      rosette: { model: 'r(theta) = rho + norm(sum cos(n m theta)/n^p)', m: state.m, N: state.N, rings: style.corner.rings },
+      palette: style.palette
+    };
+    BG.download(new Blob([JSON.stringify(doc, null, 1)], { type: 'application/json' }), name + '.json');
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// Auto demo: plays the 3-minute pitch (harmonic sweep, symmetry, morph, style switch) hands-free.
+(function (BG) {
+  const SCRIPT = [
+    { say: 'Few harmonics: bold, folk-simple shapes', key: 'N', from: 2, to: 6, ms: 1800 },
+    { say: 'More harmonics: detail appears - the same numbers, just more of them', key: 'N', from: 6, to: 34, ms: 4200 },
+    { say: 'Settling on a Pattachitra level of detail', key: 'N', from: 34, to: 14, ms: 1500 },
+    { say: 'Symmetry order m: only harmonics k = 1 (mod m) - rosettes change instantly', key: 'm', from: 6, to: 14, ms: 4200 },
+    { say: 'Back to 8-fold', key: 'm', from: 14, to: 8, ms: 1200 },
+    { say: 'Coefficient-space morph: petal to fish, no redrawing', key: 'morph', from: 0, to: 100, ms: 4200 },
+    { say: 'Morph back', key: 'morph', from: 100, to: 0, ms: 2200 },
+    { say: 'Style = a small preset: palette + band stack', style: 'madhubani', ms: 2800 },
+    { say: 'Warli: low harmonics, white on terracotta', style: 'warli', ms: 2800 },
+    { say: 'Gond: dot-and-dash and paisley on black', style: 'gond', ms: 2800 },
+    { say: 'Back to Pattachitra', style: 'pattachitra', ms: 1500 }
+  ];
+
+  // Creates the runner; api = { setKnob(key,val), setStyle(name), say(text), done() }. Returns {start, stop, running}.
+  BG.AutoDemo = function (api) {
+    const run = { running: false };
+    let raf = 0, idx = 0, t0 = 0, lastVal = null;
+
+    // Advances the script on each animation frame, sweeping the current knob or holding the current style.
+    function tick(now) {
+      if (!run.running) return;
+      const step = SCRIPT[idx];
+      if (!t0) {
+        t0 = now;
+        lastVal = null;
+        api.say(step.say);
+        if (step.style) api.setStyle(step.style);
+      }
+      const p = Math.min((now - t0) / step.ms, 1);
+      if (step.key) {
+        const v = Math.round(step.from + (step.to - step.from) * p);
+        if (v !== lastVal) { lastVal = v; api.setKnob(step.key, v); }
+      }
+      if (p >= 1) { idx++; t0 = 0; }
+      if (idx >= SCRIPT.length) { run.stop(); return; }
+      raf = requestAnimationFrame(tick);
+    }
+
+    // Starts the script from the beginning.
+    run.start = function () {
+      run.running = true;
+      idx = 0;
+      t0 = 0;
+      api.setStyle('pattachitra');
+      raf = requestAnimationFrame(tick);
+    };
+
+    // Stops the script and notifies the UI.
+    run.stop = function () {
+      run.running = false;
+      cancelAnimationFrame(raf);
+      api.done();
+    };
+    return run;
+  };
+})((globalThis.BG = globalThis.BG || {}));
+
+</script>
+<script>
+// App wiring: state, slider controls, live re-rendering, the epicycle lab, uploads, exports and the auto demo.
+(function (BG) {
+  const $ = function (id) { return document.getElementById(id); };
+  const SLIDERS = [
+    { key: 'N', label: 'Harmonics N', min: 1, max: 40, step: 1, hint: 'few = folk-simple, many = ornate' },
+    { key: 'm', label: 'Rosette symmetry m', min: 3, max: 16, step: 1, hint: 'm-fold: only k = 1 (mod m) survive' },
+    { key: 'count', label: 'Bands', min: 1, max: 6, step: 1, hint: 'how many bands of the style stack' },
+    { key: 'period', label: 'Motif period (px)', min: 44, max: 160, step: 2, hint: 'repeats are snapped to close at the corners' },
+    { key: 'thickness', label: 'Border thickness', min: 100, max: 260, step: 2, hint: '' },
+    { key: 'variation', label: 'Hand variation %', min: 0, max: 40, step: 1, hint: 'noise added to coefficients (damped per harmonic)' },
+    { key: 'morph', label: 'Morph A → B %', min: 0, max: 100, step: 1, hint: 'interpolate motif coefficients' }
+  ];
+  const state = { seed: 7, aspect: 1.3333, medallion: true };
+  let last = null, rafId = 0, view = null, demo = null;
+
+  // Returns the default knob values for a style, including its motif pair and zero morph.
+  function defaultsFor(name) {
+    const st = BG.STYLES[name];
+    return Object.assign({ style: name, motifA: st.primary, motifB: st.morphTo, morph: 0 }, st.defaults);
+  }
+
+  // Applies "#key=value&..." overrides from the URL hash (handy for sharing a look or scripted screenshots).
+  function applyHash() {
+    location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+      const p = kv.split('=');
+      if (p.length !== 2) return;
+      if (p[0] === 'style' && BG.STYLES[p[1]]) Object.assign(state, defaultsFor(p[1]));
+    });
+    location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+      const p = kv.split('='), v = p[1];
+      if (p.length !== 2 || p[0] === 'style') return;
+      if (p[0] === 'motifA' || p[0] === 'motifB') { if (BG.motifs[v]) state[p[0]] = v; }
+      else if (p[0] === 'medallion') state.medallion = v !== '0';
+      else if (!isNaN(parseFloat(v))) state[p[0]] = parseFloat(v);
+    });
+  }
+
+  // Builds the slider rows once from the SLIDERS config.
+  function buildSliders() {
+    $('sliders').innerHTML = SLIDERS.map(function (s) {
+      return '<div class="slider"><div class="top"><span>' + s.label + '</span><b id="v-' + s.key + '"></b></div>' +
+        '<input type="range" id="s-' + s.key + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '">' +
+        (s.hint ? '<div class="sub">' + s.hint + '</div>' : '') + '</div>';
+    }).join('');
+    SLIDERS.forEach(function (s) {
+      $('s-' + s.key).addEventListener('input', function (e) { setKnob(s.key, +e.target.value); });
+    });
+  }
+
+  // Sets one knob in state, mirrors it into its slider and schedules a redraw.
+  function setKnob(key, val) {
+    state[key] = val;
+    const el = $('s-' + key);
+    if (el) el.value = val;
+    const lab = $('v-' + key);
+    if (lab) lab.textContent = val;
+    scheduleRender();
+  }
+
+  // Fills a <select> with motif names (plus the uploaded one) and selects the given value.
+  function fillMotifSelect(id, value, extra) {
+    const names = BG.MOTIF_NAMES.concat(BG.motifs.custom ? ['custom'] : []);
+    let html = (extra || []).map(function (o) { return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('');
+    html += names.map(function (n) { return '<option value="' + n + '">' + (n === 'custom' ? '★ your motif' : n) + '</option>'; }).join('');
+    $(id).innerHTML = html;
+    $(id).value = value;
+  }
+
+  // Pushes all of state into the controls (used after a style switch or hash load).
+  function syncUi() {
+    const st = BG.STYLES[state.style];
+    $('style').value = state.style;
+    $('blurb').textContent = st.blurb;
+    $('s-count').max = st.layers.length;
+    state.count = Math.min(state.count, st.layers.length);
+    SLIDERS.forEach(function (s) { setKnob(s.key, state[s.key]); });
+    fillMotifSelect('motifA', state.motifA);
+    fillMotifSelect('motifB', state.motifB);
+    $('aspect').value = String(state.aspect);
+    $('medallion').checked = state.medallion;
+    $('seed').value = state.seed;
+  }
+
+  // Switches to a style preset, resetting the knobs to that style's defaults.
+  function setStyle(name) {
+    Object.assign(state, defaultsFor(name));
+    const keepLab = $('labShape').value;
+    syncUi();
+    fillLabSelect(keepLab);
+    scheduleRender();
+  }
+
+  // Coalesces many rapid changes into a single render on the next animation frame.
+  function scheduleRender() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(function () { rafId = 0; render(); });
+  }
+
+  // Sizes the SVG to the largest box that fits the stage while keeping the frame's aspect ratio.
+  function fitStage() {
+    const box = $('frame'), svg = box.firstElementChild;
+    if (!svg || !last) return;
+    const s = Math.min(box.clientWidth / last.W, box.clientHeight / last.H);
+    svg.style.width = Math.floor(last.W * s) + 'px';
+    svg.style.height = Math.floor(last.H * s) + 'px';
+  }
+
+  // Rebuilds the border from state and refreshes the stage, the numbers pill and the lab.
+  function render() {
+    let r;
+    try { r = BG.buildFrame(state); } catch (e) { $('caption').textContent = 'Render error: ' + e.message; console.error(e); return; }
+    last = r;
+    $('frame').innerHTML = r.svg;
+    fitStage();
+    $('pillNum').textContent = r.stats.total.toLocaleString();
+    const st = BG.STYLES[state.style].label, s = r.stats;
+    $('caption').innerHTML = '<b>' + st + '</b> &middot; N=' + state.N + ' harmonics &middot; m=' + state.m + '-fold &middot; seed ' + state.seed +
+      '<br>motif coefficients ' + s.motif + ' + band series ' + s.series + ' + rosette rings ' + s.rosette + ' + layout ' + s.layout + ' = <b>' + s.total + ' numbers</b>';
+    updateLab();
+  }
+
+  // Fills the lab's shape select with the border motif, every library motif and the 3-circle rosette.
+  function fillLabSelect(keep) {
+    fillMotifSelect('labShape', 'primary', [['primary', 'Border motif (A↔B)']]);
+    $('labShape').insertAdjacentHTML('beforeend', '<option value="rosette">Rosette from 3 circles</option>');
+    $('labShape').value = keep || 'primary';
+    if ($('labShape').value !== (keep || 'primary')) $('labShape').value = 'primary';
+  }
+
+  // Sends the chosen lab shape to the epicycle view (rosette ignores N because 3 circles are the whole shape).
+  function updateLab() {
+    const v = $('labShape').value;
+    let c, N = state.N, msg;
+    if (v === 'rosette') {
+      c = BG.starCoeffs(state.m, 0.9);
+      N = c.K;
+      msg = '3 circles: k = 1, 1+' + state.m + ', 1−' + state.m + '. Every k ≡ 1 (mod ' + state.m + ') gives a ' + state.m + '-fold rosette by construction.';
+    } else {
+      c = v === 'primary' ? BG.lerp(BG.motifs[state.motifA], BG.motifs[state.motifB], state.morph / 100) : BG.motifs[v];
+    }
+    view.setShape(c, N);
+    if (v !== 'rosette') {
+      const n = view.circles.length;
+      msg = n + ' circles (|k| ≤ ' + N + ') = ' + 2 * n + ' numbers trace this outline.';
+    }
+    $('epiReadout').textContent = msg;
+  }
+
+  // Loads an uploaded image, traces and FFTs it, and installs the result as motif A.
+  function onUpload(file) {
+    if (!file) return;
+    const img = new Image();
+    img.onload = function () {
+      const pts = BG.traceImage(img);
+      URL.revokeObjectURL(img.src);
+      if (!pts) { $('uploadMsg').textContent = 'Could not find a clear shape - try a dark silhouette on a plain light background.'; return; }
+      BG.addCustomMotif('custom', pts);
+      state.motifA = 'custom';
+      fillMotifSelect('motifA', 'custom');
+      fillMotifSelect('motifB', state.motifB);
+      fillLabSelect('custom');
+      $('uploadMsg').textContent = 'Traced ' + pts.length + ' outline points, FFT to ' + (2 * 48 + 1) + ' harmonics. Now motif A (morph it with B).';
+      scheduleRender();
+    };
+    img.onerror = function () { $('uploadMsg').textContent = 'That file could not be read as an image.'; };
+    img.src = URL.createObjectURL(file);
+  }
+
+  // Wires every control to state changes and starts the epicycle animation.
+  function bind() {
+    Object.keys(BG.STYLES).forEach(function (k) { $('style').insertAdjacentHTML('beforeend', '<option value="' + k + '">' + BG.STYLES[k].label + '</option>'); });
+    $('style').addEventListener('change', function (e) { setStyle(e.target.value); });
+    $('motifA').addEventListener('change', function (e) { state.motifA = e.target.value; scheduleRender(); });
+    $('motifB').addEventListener('change', function (e) { state.motifB = e.target.value; scheduleRender(); });
+    $('aspect').addEventListener('change', function (e) { state.aspect = parseFloat(e.target.value); scheduleRender(); });
+    $('medallion').addEventListener('change', function (e) { state.medallion = e.target.checked; scheduleRender(); });
+    $('seed').addEventListener('input', function (e) { state.seed = Math.max(1, parseInt(e.target.value, 10) || 1); scheduleRender(); });
+    $('dice').addEventListener('click', function () { state.seed = 1 + Math.floor(Math.random() * 9999); $('seed').value = state.seed; scheduleRender(); });
+    $('upload').addEventListener('change', function (e) { onUpload(e.target.files[0]); e.target.value = ''; });
+    $('labShape').addEventListener('change', updateLab);
+    $('epiPlay').addEventListener('click', function () { $('epiPlay').textContent = view.toggle() ? 'Pause' : 'Play'; });
+    $('epiRestart').addEventListener('click', function () { view.restart(); });
+    // Builds the export filename stem from the current style and seed.
+    const name = function () { return 'fourier-border-' + state.style + '-' + state.seed; };
+    $('exSvg').addEventListener('click', function () { if (last) BG.exportSvg(last.svg, name()); });
+    $('exPng').addEventListener('click', function () { if (last) BG.exportPng(last.svg, last.W, last.H, name()); });
+    $('exJson').addEventListener('click', function () { if (last) BG.exportJson(state, last.stats, name()); });
+    window.addEventListener('resize', function () { fitStage(); view.drawSpectrum(); });
+    if (window.ResizeObserver) new ResizeObserver(fitStage).observe($('frame')); // re-fit whenever the stage box changes size
+    // Toggles focus mode (panels hidden) and re-fits the border to the new stage size.
+    const toggleFocus = function () { document.body.classList.toggle('focus'); fitStage(); };
+    $('focusBtn').addEventListener('click', toggleFocus);
+    window.addEventListener('keydown', function (e) {
+      if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) && e.target.type !== 'range') return;
+      if (e.key === 'f' || e.key === 'F') toggleFocus();
+      if (e.key === 'd' || e.key === 'D') $('autoDemo').click();
+    });
+
+    demo = BG.AutoDemo({
+      setKnob: setKnob, setStyle: setStyle,
+      say: function (t) { $('narration').textContent = t; $('autoDemo').textContent = '■ Stop demo'; },
+      done: function () { $('narration').textContent = ''; $('autoDemo').classList.remove('on'); $('autoDemo').textContent = '▶ Auto demo'; }
+    });
+    $('autoDemo').addEventListener('click', function () {
+      if (demo.running) { demo.stop(); return; }
+      $('autoDemo').classList.add('on');
+      demo.start();
+    });
+  }
+
+  // Boots the app: controls, first render and the epicycle loop.
+  function init() {
+    Object.assign(state, defaultsFor('pattachitra'));
+    applyHash();
+    view = BG.EpicycleView($('epi'), $('spec'));
+    buildSliders();
+    bind();
+    syncUi();
+    fillLabSelect();
+    render();
+    view.start();
+    window.BGApp = { state: state, setKnob: setKnob, setStyle: setStyle, render: render, lastSvg: function () { return last && last.svg; } };
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+})(globalThis.BG);
+
+</script>
+</body>
+</html>
